@@ -1,0 +1,15 @@
+@model LostAndFound.Models.FoundItem
+@{ ViewData["Title"] = "编辑招领"; }
+<h3>✏️ 编辑招领</h3>
+<div class="card shadow"><div class="card-body"><form asp-action="Edit" method="post">
+<div class="row">
+<div class="col-md-6 mb-3"><label class="form-label">物品名称</label><input asp-for="ItemName" class="form-control" required /></div>
+<div class="col-md-6 mb-3"><label class="form-label">类别</label><select asp-for="Category" class="form-select" required>@foreach(var c in (string[])ViewBag.Categories){<option>@c</option>}</select></div>
+</div>
+<div class="row">
+<div class="col-md-6 mb-3"><label class="form-label">拾获时间</label><input asp-for="FoundTime" type="datetime-local" class="form-control" required value="@Model.FoundTime.ToString("yyyy-MM-ddTHH:mm")" /></div>
+<div class="col-md-6 mb-3"><label class="form-label">拾获地点</label><input asp-for="FoundLocation" class="form-control" required /></div>
+</div>
+<div class="mb-3"><label class="form-label">特征描述</label><textarea asp-for="Description" class="form-control" rows="3"></textarea></div>
+<button type="submit" class="btn btn-primary">保存</button><a asp-action="MyFoundItems" class="btn btn-secondary">取消</a>
+</form></div></div>

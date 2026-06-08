@@ -1,0 +1,30 @@
+@{ ViewData["Title"] = "用户登录"; }
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white"><h4 class="mb-0">用户登录</h4></div>
+            <div class="card-body">
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger">@ViewBag.Error</div>
+                }
+                <form asp-action="Login" method="post">
+                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input name="username" class="form-control" required placeholder="请输入用户名" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input name="password" type="password" class="form-control" required placeholder="请输入密码" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                </form>
+                <hr />
+                <p class="text-center mb-0">还没有账号？<a asp-action="Register">立即注册</a></p>
+                <p class="text-center text-muted small">默认管理员: admin / admin123</p>
+            </div>
+        </div>
+    </div>
+</div>

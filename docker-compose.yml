@@ -1,0 +1,12 @@
+services:
+  lostandfound:
+    build: .
+    container_name: lostandfound
+    ports:
+      - "5000:5000"
+    volumes:
+      - lf_data:/app
+    restart: always
+
+volumes:
+  lf_data:

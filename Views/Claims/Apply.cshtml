@@ -1,0 +1,119 @@
+@using LostAndFound.Models
+@{
+    ViewData["Title"] = "发起认领申请";
+    string itemName = "";
+    string itemLocation = "";
+    string itemDesc = "";
+    var lost = ViewBag.Item as LostItem;
+    var found = ViewBag.Item as FoundItem;
+    if (lost != null)
+    {
+        itemName = lost.ItemName;
+        itemLocation = "丢失地点：" + lost.LostLocation;
+        itemDesc = lost.Description ?? "无";
+    }
+    else if (found != null)
+    {
+        itemName = found.ItemName;
+        itemLocation = "拾获地点：" + found.FoundLocation;
+        itemDesc = found.Description ?? "无";
+    }
+}
+<h3>📝 发起认领申请</h3>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+<div class="card shadow">
+    <div class="card-body">
+        <h5>您要认领的物品信息：</h5>
+        @if (!string.IsNullOrEmpty(itemName))
+        {
+            <dl class="row">
+                <dt class="col-sm-3">物品名称</dt>
+                <dd class="col-sm-9">@itemName</dd>
+                <dt class="col-sm-3">@(itemLocation.StartsWith("丢失") ? "丢失地点" : "拾获地点")</dt>
+                <dd class="col-sm-9">@itemLocation.Replace("丢失地点：", "").Replace("拾获地点：", "")</dd>
+                <dt class="col-sm-3">描述</dt>
+                <dd class="col-sm-9">@itemDesc</dd>
+            </dl>
+        }
+        else
+        {
+            <div class="alert alert-warning">物品信息加载失败，请返回重试。</div>
+        }
+
+        <form asp-action="Apply" method="post" id="claimForm">
+            <input type="hidden" name="type" value="@ViewBag.Type" />
+            <input type="hidden" name="itemId" value="@ViewBag.ItemId" />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    申请理由
+                    <span class="text-danger">*</span>
+                    <small class="text-muted">（至少10个字）</small>
+                </label>
+                <textarea name="reason" id="reason"
+                    class="form-control" rows="5" 
+                    minlength="10"
+                    placeholder="请详细描述您为何认为这是您的物品，可以提供物品特征、购买证明等信息..."
+                    oninput="updateCharCount()">@(ViewBag.ReasonText ?? "")</textarea>
+                <div class="form-text mt-1">
+                    已输入 <strong id="charCount">@((ViewBag.ReasonText as string)?.Length ?? 0)</strong> / 10 个字
+                    <span id="charWarning" class="text-danger ms-2" style="display:none;">⚠️ 还需至少 <span id="charRemain">10</span> 个字</span>
+                    <span id="charOk" class="text-success ms-2" style="display:none;">✅ 字数达标</span>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-warning">提交申请</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">返回</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function updateCharCount() {
+        var text = document.getElementById('reason').value;
+        var len = text.length;
+        document.getElementById('charCount').textContent = len;
+
+        var warning = document.getElementById('charWarning');
+        var ok = document.getElementById('charOk');
+        var remain = document.getElementById('charRemain');
+        var btn = document.getElementById('submitBtn');
+
+        if (len < 10) {
+            warning.style.display = 'inline';
+            ok.style.display = 'none';
+            remain.textContent = (10 - len);
+            btn.disabled = true;
+            btn.classList.add('btn-secondary');
+            btn.classList.remove('btn-warning');
+        } else {
+            warning.style.display = 'none';
+            ok.style.display = 'inline';
+            btn.disabled = false;
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-warning');
+        }
+    }
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCharCount();
+        // 拦截表单提交，前端二次校验
+        document.getElementById('claimForm').addEventListener('submit', function(e) {
+            var len = document.getElementById('reason').value.trim().length;
+            if (len < 10) {
+                e.preventDefault();
+                alert('申请理由不能少于10个字（当前仅 ' + len + ' 个字），请补充更多描述。');
+                return false;
+            }
+            return true;
+        });
+    });
+</script>
+}

@@ -1,0 +1,8 @@
+@model List<LostAndFound.Models.User>
+@{ ViewData["Title"] = "用户管理"; }
+<h3>👥 用户管理</h3>
+<form method="get" class="row g-2 mb-3"><div class="col-md-4"><input name="keyword" class="form-control" placeholder="搜索用户名或姓名" value="@ViewBag.Keyword" /></div><div class="col-md-2"><button class="btn btn-primary">搜索</button></div></form>
+<div class="table-responsive"><table class="table table-hover"><thead class="table-dark"><tr><th>ID</th><th>用户名</th><th>姓名</th><th>角色</th><th>手机</th><th>注册时间</th><th>操作</th></tr></thead>
+<tbody>@foreach(var u in Model){<tr><td>@u.Id</td><td>@u.Username</td><td>@u.RealName</td><td><span class="badge @(u.Role=="Admin"?"bg-warning text-dark":"bg-secondary")">@u.Role</span></td><td>@(u.Phone??"-")</td><td>@u.CreatedAt.ToString("MM-dd")</td>
+<td><a asp-action="EditUser" asp-route-id="@u.Id" class="btn btn-sm btn-outline-primary">编辑</a>
+<form asp-action="DeleteUser" asp-route-id="@u.Id" method="post" class="d-inline" onsubmit="return confirm('确认删除该用户？')"><button class="btn btn-sm btn-outline-danger">删除</button></form></td></tr>}</tbody></table></div>

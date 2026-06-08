@@ -1,0 +1,10 @@
+bin/
+obj/
+publish/
+*.db
+*.db-shm
+*.db-wal
+.vs/
+.vscode/
+*.user
+data/

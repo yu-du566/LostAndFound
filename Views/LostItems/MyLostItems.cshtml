@@ -1,0 +1,13 @@
+@model List<LostAndFound.Models.LostItem>
+@{ ViewData["Title"] = "我的失物"; }
+<h3>📋 我的失物</h3>
+@if (!Model.Any()) { <div class="alert alert-info">您还没有发布过失物信息。<a asp-action="Create" class="btn btn-sm btn-primary">立即发布</a></div> }
+else { <div class="table-responsive"><table class="table table-hover">
+<thead class="table-dark"><tr><th>物品名称</th><th>类别</th><th>丢失时间</th><th>状态</th><th>操作</th></tr></thead>
+<tbody>@foreach (var item in Model) { <tr>
+<td>@item.ItemName</td><td>@item.Category</td><td>@item.LostTime.ToString("MM-dd HH:mm")</td>
+<td><span class="badge @(item.Status=="未认领"?"bg-danger":"bg-warning")">@item.Status</span></td>
+<td><a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">详情</a>
+<a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">编辑</a>
+<form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('确认删除？')"><button class="btn btn-sm btn-outline-danger">删除</button></form></td>
+</tr> }</tbody></table></div> }

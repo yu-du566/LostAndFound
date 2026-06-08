@@ -1,0 +1,13 @@
+@model List<LostAndFound.Models.SystemLog>
+@{ ViewData["Title"] = "日志管理"; }
+<h3>📋 系统操作日志</h3>
+<form method="get" class="row g-2 mb-3 bg-light p-3 rounded">
+    <div class="col-md-3"><input name="startDate" type="date" class="form-control" value="@ViewBag.StartDate" placeholder="开始日期" /></div>
+    <div class="col-md-3"><input name="endDate" type="date" class="form-control" value="@ViewBag.EndDate" placeholder="结束日期" /></div>
+    <div class="col-md-3"><input name="actionType" class="form-control" placeholder="操作类型" value="@ViewBag.ActionType" /></div>
+    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">筛选</button></div>
+</form>
+<p>共 <strong>@ViewBag.Total</strong> 条记录，第 @ViewBag.Page / @ViewBag.TotalPages 页</p>
+<div class="table-responsive"><table class="table table-hover table-sm"><thead class="table-dark"><tr><th>时间</th><th>用户</th><th>操作类型</th><th>内容</th><th>IP</th></tr></thead>
+<tbody>@foreach(var l in Model){<tr><td>@l.OperatedAt.ToString("MM-dd HH:mm:ss")</td><td>@(l.User?.RealName??"系统")</td><td>@l.ActionType</td><td>@l.Content</td><td>@(l.IpAddress??"-")</td></tr>}</tbody></table></div>
+@if(ViewBag.TotalPages>1){<nav><ul class="pagination">@for(int i=1;i<=ViewBag.TotalPages;i++){<li class="page-item @(i==ViewBag.Page?"active":"")"><a class="page-link" href="?page=@i&startDate=@ViewBag.StartDate&endDate=@ViewBag.EndDate&actionType=@ViewBag.ActionType">@i</a></li>}</ul></nav>}

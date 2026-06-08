@@ -1,0 +1,21 @@
+@using LostAndFound.Models
+@{ ViewData["Title"] = "📊 我的统计"; var u = ViewBag.User as User; }
+<h3>📊 我的统计</h3>
+
+@if(u!=null&&u.IsBlacklisted){<div class="alert alert-danger">⛔ 您的账号已被拉黑至 @u.BlacklistUntil?.ToString("yyyy-MM-dd")，期间无法发布招领。</div>}
+@if(u!=null&&u.WarningCount>0){<div class="alert alert-warning">⚠️ 您已被警告 @u.WarningCount 次，3次警告将拉黑30天！</div>}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card bg-success bg-opacity-10"><div class="card-body text-center"><h5>🎁 招领发布</h5><table class="table table-sm mt-2"><tr><td>本月</td><td class="fw-bold">@ViewBag.MonthFound</td></tr><tr><td>本年</td><td class="fw-bold">@ViewBag.YearFound</td></tr><tr><td>累计</td><td class="fw-bold">@ViewBag.TotalFound</td></tr></table></div></div></div>
+    <div class="col-md-4"><div class="card bg-danger bg-opacity-10"><div class="card-body text-center"><h5>📋 失物发布</h5><table class="table table-sm mt-2"><tr><td>本月</td><td class="fw-bold">@ViewBag.MonthLost</td></tr><tr><td>本年</td><td class="fw-bold">@ViewBag.YearLost</td></tr><tr><td>累计</td><td class="fw-bold">@ViewBag.TotalLost</td></tr></table></div></div></div>
+    <div class="col-md-4"><div class="card bg-primary bg-opacity-10"><div class="card-body text-center"><h5>✅ 认领成功</h5><table class="table table-sm mt-2"><tr><td>本月</td><td class="fw-bold">@ViewBag.MonthClaimed</td></tr><tr><td>本年</td><td class="fw-bold">@ViewBag.YearClaimed</td></tr><tr><td>累计</td><td class="fw-bold">@ViewBag.TotalClaimed</td></tr></table></div></div></div>
+</div>
+
+<div class="row"><div class="col-12"><h5>📊 可视化对比</h5>
+@{var mx=(int)Math.Max(1,Math.Max((int)(ViewBag.TotalFound??0),Math.Max((int)(ViewBag.TotalLost??0),(int)(ViewBag.TotalClaimed??0))));}
+<div class="mb-2"><small>招领发布</small><div class="progress" style="height:20px"><div class="progress-bar bg-success" style="width:@(100.0*(int)(ViewBag.TotalFound??0)/mx)%">@ViewBag.TotalFound</div></div></div>
+<div class="mb-2"><small>失物发布</small><div class="progress" style="height:20px"><div class="progress-bar bg-danger" style="width:@(100.0*(int)(ViewBag.TotalLost??0)/mx)%">@ViewBag.TotalLost</div></div></div>
+<div class="mb-2"><small>认领成功</small><div class="progress" style="height:20px"><div class="progress-bar bg-primary" style="width:@(100.0*(int)(ViewBag.TotalClaimed??0)/mx)%">@ViewBag.TotalClaimed</div></div></div>
+</div></div>
+
+<a asp-controller="Leaderboard" asp-action="Index" class="btn btn-secondary mt-3">返回排行榜</a>

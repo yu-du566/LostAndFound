@@ -1,0 +1,6 @@
+@model List<LostAndFound.Models.Claim>
+@{ ViewData["Title"] = "我的认领申请"; }
+<h3>📋 我的认领申请</h3>
+@if(!Model.Any()){<div class="alert alert-info">暂无认领申请</div>}
+else{<div class="table-responsive"><table class="table table-hover"><thead class="table-dark"><tr><th>物品</th><th>类型</th><th>申请时间</th><th>状态</th><th>审核备注</th></tr></thead>
+<tbody>@foreach(var c in Model){<tr><td>@(c.LostItem?.ItemName ?? c.FoundItem?.ItemName ?? "未知")</td><td>@(c.LostItemId!=null?"失物":"招领")</td><td>@c.AppliedAt.ToString("MM-dd HH:mm")</td><td><span class="badge @(c.Status=="待审核"?"bg-warning":c.Status=="通过"?"bg-success":"bg-danger")">@c.Status</span></td><td>@(c.Remark??"-")</td></tr>}</tbody></table></div>}

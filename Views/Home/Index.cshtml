@@ -1,0 +1,123 @@
+﻿@{
+    ViewData["Title"] = "首页";
+    int totalLost = ViewBag.TotalLost ?? 0;
+    int totalFound = ViewBag.TotalFound ?? 0;
+    int totalClaimed = ViewBag.TotalClaimed ?? 0;
+    var announcements = ViewBag.Announcements as List<LostAndFound.Models.Announcement> ?? new();
+}
+
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold text-primary">📦 失物招领智能平台</h1>
+    <p class="lead text-muted">集中发布 · 智能匹配 · 安全认领 · 全流程管理</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-danger shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-danger">🔍 失物信息</h5>
+                <h2 class="display-6">@totalLost</h2>
+                <p class="text-muted">条待认领失物</p>
+                <a asp-controller="LostItems" asp-action="Index" class="btn btn-outline-danger">查看失物</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-success">📋 招领信息</h5>
+                <h2 class="display-6">@totalFound</h2>
+                <p class="text-muted">条待认领招领</p>
+                <a asp-controller="FoundItems" asp-action="Index" class="btn btn-outline-success">查看招领</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-primary shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary">✅ 已认领</h5>
+                <h2 class="display-6">@totalClaimed</h2>
+                <p class="text-muted">条已完成认领</p>
+                <a asp-controller="LostItems" asp-action="Create" class="btn btn-outline-primary">发布失物</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (announcements.Any())
+{
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-warning bg-opacity-25 fw-bold">
+            📢 系统公告
+        </div>
+        <div class="card-body">
+            @foreach (var ann in announcements)
+            {
+                <div class="mb-2 @(ann.IsTop ? "border-start border-warning border-3 ps-3" : "")">
+                    <strong>@(ann.IsTop ? "[置顶] " : "")@ann.Title</strong>
+                    <small class="text-muted"> - @ann.PublishedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                    <p class="text-muted mb-0">@ann.Content</p>
+                </div>
+                @if (ann != announcements.Last())
+                {
+                    <hr class="my-2" />
+                }
+            }
+        </div>
+    </div>
+}
+
+<div class="row mt-4 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-3 col-4 mx-auto">
+                        <img src="/Home/QrCode" alt="手机扫码打开" class="img-fluid" style="max-width:160px;" />
+                    </div>
+                    <div class="col-md-9 col-8 text-start">
+                        <h5 class="mb-1">📱 手机端访问</h5>
+                        <p class="text-muted mb-1 small">
+                            用手机相机扫描二维码，即可在手机上打开本平台。<br>
+                            支持添加到主屏幕，像 App 一样使用。
+                        </p>
+                        <p class="text-info mb-0 small">
+                            💡 手机连不上？电脑开启热点：<strong>LostAndFound / 12345678</strong><br>
+                            手机连接此WiFi后，浏览器打开 <code>http://192.168.137.1:5000</code>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h5 class="card-title">📝 发布失物</h5>
+                <p class="card-text text-muted">丢失了物品？快速发布失物信息，系统会自动匹配可能的招领。</p>
+                <a asp-controller="LostItems" asp-action="Create" class="btn btn-primary">立即发布</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h5 class="card-title">🎁 捡到物品</h5>
+                <p class="card-text text-muted">捡到他人的物品？发布招领信息，帮助失主找回失物。</p>
+                <a asp-controller="FoundItems" asp-action="Create" class="btn btn-success">发布招领</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h5 class="card-title">🔐 我的申请</h5>
+                <p class="card-text text-muted">查看我的认领申请状态，了解审核进度。</p>
+                <a asp-controller="Claims" asp-action="MyClaims" class="btn btn-info">查看申请</a>
+            </div>
+        </div>
+    </div>
+</div>

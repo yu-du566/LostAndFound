@@ -1,0 +1,54 @@
+@model List<LostAndFound.Models.LostItem>
+@{ ViewData["Title"] = "失物查询"; }
+<h3>🔍 失物查询</h3>
+<form method="get" class="row g-2 mb-3 bg-light p-3 rounded">
+    <div class="col-md-3"><input name="keyword" class="form-control" placeholder="关键词搜索" value="@ViewBag.Keyword" /></div>
+    <div class="col-md-2">
+        <select name="category" class="form-select">
+            <option value="">全部类别</option>
+            @foreach (var c in (string[])ViewBag.Categories)
+            {
+                <option selected="@(ViewBag.Category == c)">@c</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">全部状态</option>
+            <option selected="@(ViewBag.Status == "未认领")">未认领</option>
+            <option selected="@(ViewBag.Status == "认领中")">认领中</option>
+            <option selected="@(ViewBag.Status == "已认领")">已认领</option>
+        </select>
+    </div>
+    <div class="col-md-2"><input name="startDate" type="date" class="form-control" value="@ViewBag.StartDate" /></div>
+    <div class="col-md-2"><input name="endDate" type="date" class="form-control" value="@ViewBag.EndDate" /></div>
+    <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">搜索</button></div>
+</form>
+
+@if (!Model.Any()) { <div class="alert alert-info">暂无失物信息</div> }
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark"><tr><th>物品名称</th><th>类别</th><th>丢失时间</th><th>丢失地点</th><th>状态</th><th>发布者</th><th>操作</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.ItemName</td><td>@item.Category</td>
+                        <td>@item.LostTime.ToString("MM-dd HH:mm")</td><td>@item.LostLocation</td>
+                        <td><span class="badge @(item.Status=="未认领"?"bg-danger":item.Status=="认领中"?"bg-warning":"bg-success")">@item.Status</span></td>
+                        <td>@item.Publisher?.RealName</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">详情</a>
+                            @if (item.Status == "未认领")
+                            {
+                                <a asp-controller="Claims" asp-action="Apply" asp-route-type="Lost" asp-route-id="@item.Id" class="btn btn-sm btn-success">🤝 帮助找到</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

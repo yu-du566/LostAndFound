@@ -1,0 +1,107 @@
+@using LostAndFound.Models
+@{
+    ViewData["Title"] = "🏆 招领排行榜";
+    var period = ViewBag.Period as string;
+    var violations = ViewBag.Violations as List<string>;
+    var ranking = ViewBag.Ranking as List<RankItem>;
+    var isAdmin = Context.Session.GetString("Role") == "Admin";
+}
+<h3>🏆 招领发布排行榜</h3>
+
+<div class="btn-group mb-3">
+    <a href="/Leaderboard?period=month" class="btn btn-sm @(period=="month"?"btn-primary":"btn-outline-primary")">本月</a>
+    <a href="/Leaderboard?period=year" class="btn btn-sm @(period=="year"?"btn-primary":"btn-outline-primary")">本年</a>
+    <a href="/Leaderboard?period=all" class="btn btn-sm @(period=="all"?"btn-primary":"btn-outline-primary")">累计</a>
+</div>
+
+@if (violations != null && violations.Any())
+{
+    <div class="alert alert-danger">
+        <strong>⚠️ 异常检测警告：</strong>
+        @foreach (var v in violations)
+        {
+            <br /><span>· @v — <span class="badge bg-danger">已警告，3次将拉黑30天</span></span>
+        }
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header fw-bold">排行榜 TOP 20</div>
+            <div class="card-body p-0">
+                @if (ranking != null && ranking.Any())
+                {
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr><th style="width:60px">排名</th><th>用户名</th><th style="width:120px">招领发布数</th></tr>
+                        </thead>
+                        <tbody>
+                            @{ var rankColors = new[] { "table-warning", "table-secondary", "table-danger bg-opacity-25" }; }
+                            @foreach (var r in ranking)
+                            {
+                                int i = r.Rank;
+                                string rankBadge;
+                                if (i == 1) rankBadge = "🥇";
+                                else if (i == 2) rankBadge = "🥈";
+                                else if (i == 3) rankBadge = "🥉";
+                                else rankBadge = i.ToString();
+
+                                string rowClass = i switch
+                                {
+                                    1 => "table-warning fw-bold fs-5",
+                                    2 => "table-light fw-bold",
+                                    3 => "table-danger fw-bold",
+                                    <= 10 => "table-info",
+                                    _ => ""
+                                };
+                                <tr class="@rowClass">
+                                    <td class="text-center" style="font-size:@(i<=3?"1.5rem":"1rem")">@rankBadge</td>
+                                    <td>
+                                        @r.Username
+                                        @if (i <= 3) { <span class="badge bg-warning text-dark ms-1">TOP @i</span> }
+                                        @if (i <= 10) { <span class="badge bg-info text-dark ms-1">前十</span> }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-primary fs-6 me-2">@r.Count</span>
+                                            <div class="progress flex-grow-1" style="height:6px;">
+                                                <div class="progress-bar @(i<=3?"bg-warning":"bg-primary")" style="width:@(Math.Min(100, r.Count))%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="p-3 text-muted">暂无数据</div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header fw-bold">📈 快速入口</div>
+            <div class="card-body">
+                <a asp-action="MyStats" class="btn btn-outline-primary d-block mb-2">📊 我的统计</a>
+                @if (isAdmin)
+                {
+                    <a asp-action="Warnings" class="btn btn-outline-warning d-block mb-2">🔔 警告管理</a>
+                }
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header fw-bold">🏅 图例</div>
+            <div class="card-body small">
+                <div>🥇 金牌 - 第一名</div>
+                <div>🥈 银牌 - 第二名</div>
+                <div>🥉 铜牌 - 第三名</div>
+                <div class="text-muted mt-2">· 前十名行有蓝色背景</div>
+                <div class="text-muted">· 前三名有醒目标识</div>
+            </div>
+        </div>
+    </div>
+</div>

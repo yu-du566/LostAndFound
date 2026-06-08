@@ -1,0 +1,381 @@
+@{
+    ViewData["Title"] = "📊 数据分析";
+    var categories = ViewBag.Categories as List<string> ?? new();
+    var lostCatData = ViewBag.LostCatData as List<int> ?? new();
+    var foundCatData = ViewBag.FoundCatData as List<int> ?? new();
+    var lostClaimedData = ViewBag.LostClaimedData as List<int> ?? new();
+    var foundClaimedData = ViewBag.FoundClaimedData as List<int> ?? new();
+    var monthlyLabels = ViewBag.MonthlyLabels as List<string> ?? new();
+    var monthlyLost = ViewBag.MonthlyLost as List<int> ?? new();
+    var monthlyFound = ViewBag.MonthlyFound as List<int> ?? new();
+    var locLabels = ViewBag.LocLabels as List<string> ?? new();
+    var locData = ViewBag.LocData as List<int> ?? new();
+    var categoryAnalysis = ViewBag.CategoryAnalysis as IEnumerable<dynamic> ?? new List<dynamic>();
+
+    var pieColors = new[] { "#FF6384","#36A2EB","#FFCE56","#4BC0C0","#9966FF","#FF9F40","#C9CBCF" };
+
+    // 筛选有数据的类别（饼图用）
+    var lostPie = categories.Zip(lostCatData, (k, v) => new { k, v }).Where(x => x.v > 0).ToList();
+    var foundPie = categories.Zip(foundCatData, (k, v) => new { k, v }).Where(x => x.v > 0).ToList();
+
+    int catGrandTotal = categories.Any()
+        ? categories.Select((_, i) => (lostCatData.Count > i ? lostCatData[i] : 0) + (foundCatData.Count > i ? foundCatData[i] : 0)).Sum()
+        : 0;
+}
+<h3 class="mb-1">📊 数据统计分析</h3>
+<small class="text-muted">更新时间：@DateTime.Now.ToString("yyyy-MM-dd HH:mm") | 自动归档超过30天未认领物品</small>
+
+@if (ViewBag.NewlyArchived > 0)
+{
+    <div class="alert alert-info py-1 mt-2">🔄 本次归档 <strong>@ViewBag.NewlyArchived</strong> 条超过30天未认领的记录</div>
+}
+
+<!-- ====== 顶部数值概览卡片 ====== -->
+<div class="row g-2 mb-3 mt-2">
+    <div class="col-4 col-md-2">
+        <div class="card border-danger border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-danger fw-bold fs-5">📋 失物</div>
+                <div class="fs-3 fw-bold text-danger">@ViewBag.TotalLost</div>
+                <small class="text-muted">本月 +@ViewBag.MonthLost</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-success border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-success fw-bold fs-5">🎁 招领</div>
+                <div class="fs-3 fw-bold text-success">@ViewBag.TotalFound</div>
+                <small class="text-muted">本月 +@ViewBag.MonthFound</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-primary border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-primary fw-bold fs-5">✅ 已认领</div>
+                <div class="fs-3 fw-bold text-primary">@ViewBag.TotalClaimed</div>
+                <small class="text-muted">累计</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-info border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-info fw-bold fs-5">⏱️ 失物耗时</div>
+                <div class="fs-3 fw-bold text-info">@ViewBag.AvgLostDays<span class="fs-6">天</span></div>
+                <small class="text-muted">发布→认领</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-warning border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-warning fw-bold fs-5">⏱️ 招领耗时</div>
+                <div class="fs-3 fw-bold text-warning">@ViewBag.AvgFoundDays<span class="fs-6">天</span></div>
+                <small class="text-muted">发布→认领</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="card border-secondary border-2 text-center h-100">
+            <div class="card-body p-2">
+                <div class="text-secondary fw-bold fs-5">📦 归档</div>
+                <div class="fs-3 fw-bold text-secondary">@(ViewBag.ArchivedLost+ViewBag.ArchivedFound)</div>
+                <small class="text-muted">失物+招领</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== 第一行：两个饼状图 + 分段统计 ====== -->
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-danger bg-opacity-10 fw-bold">🥧 失物类别分布（@lostPie.Sum(x=>x.v) 条）</div>
+            <div class="card-body">
+                @if (lostPie.Any())
+                {
+                    <canvas id="pieLost" height="230"></canvas>
+                }
+                else
+                { <p class="text-muted text-center py-5">暂无失物数据</p> }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-success bg-opacity-10 fw-bold">🥧 招领类别分布（@foundPie.Sum(x=>x.v) 条）</div>
+            <div class="card-body">
+                @if (foundPie.Any())
+                {
+                    <canvas id="pieFound" height="230"></canvas>
+                }
+                else
+                { <p class="text-muted text-center py-5">暂无招领数据</p> }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary bg-opacity-10 fw-bold">📋 分段统计</div>
+            <div class="card-body">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light"><tr><th></th><th>本月</th><th>本年</th><th>累计</th></tr></thead>
+                    <tbody>
+                        <tr><td class="fw-bold">📋 失物</td><td class="text-danger fw-bold">@ViewBag.MonthLost</td><td>@ViewBag.YearLost</td><td>@ViewBag.TotalLost</td></tr>
+                        <tr><td class="fw-bold">🎁 招领</td><td class="text-success fw-bold">@ViewBag.MonthFound</td><td>@ViewBag.YearFound</td><td>@ViewBag.TotalFound</td></tr>
+                        <tr><td class="fw-bold">✅ 已认领</td><td colspan="3" class="text-primary fw-bold fs-5">@ViewBag.TotalClaimed</td></tr>
+                    </tbody>
+                </table>
+
+                <hr class="my-2" />
+                <div class="d-flex justify-content-between mb-1">
+                    <small class="text-muted">⏱️ 失物平均认领耗时</small>
+                    <span class="badge @(ViewBag.AvgLostDays>7?"bg-danger":"bg-success")">@ViewBag.AvgLostDays 天</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <small class="text-muted">⏱️ 招领平均认领耗时</small>
+                    <span class="badge @(ViewBag.AvgFoundDays>7?"bg-danger":"bg-success")">@ViewBag.AvgFoundDays 天</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <small class="text-muted">📦 已归档物品</small>
+                    <span class="badge bg-secondary">@ViewBag.ArchivedLost+@ViewBag.ArchivedFound</span>
+                </div>
+                <div class="text-center mt-2">
+                    <a asp-action="Archived" class="btn btn-sm btn-outline-primary">查看归档详情</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== 第二行：月度趋势折线图 ====== -->
+<div class="row g-3 mt-3">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info bg-opacity-10 fw-bold">📈 近6个月发布趋势</div>
+            <div class="card-body">
+                <canvas id="lineChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== 第三行：地点柱状图 + 成功归还柱状图对比 ====== -->
+<div class="row g-3 mt-3">
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-warning bg-opacity-10 fw-bold">📍 丢失/拾获高发地点 TOP10</div>
+            <div class="card-body">
+                @if (locData.Any())
+                {
+                    <canvas id="barLocation" height="260"></canvas>
+                }
+                else
+                { <p class="text-muted text-center py-5">暂无地点数据</p> }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-success bg-opacity-10 fw-bold">✅ 失物 vs 招领 成功归还对比</div>
+            <div class="card-body">
+                @if (lostClaimedData.Sum() > 0 || foundClaimedData.Sum() > 0)
+                {
+                    <canvas id="barClaimed" height="260"></canvas>
+                }
+                else
+                { <p class="text-muted text-center py-5">暂无成功归还数据</p> }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== 第四行：各类别详细统计表格 ====== -->
+<div class="row g-3 mt-3">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark bg-opacity-10 fw-bold">📋 各类别详细统计（共 @catGrandTotal 条）</div>
+            <div class="card-body p-0">
+                @if (categoryAnalysis.Any())
+                {
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:15%">类别</th>
+                                <th style="width:12%" class="text-center">📋 失物</th>
+                                <th style="width:12%" class="text-center">🎁 招领</th>
+                                <th style="width:12%" class="text-center">合计</th>
+                                <th style="width:49%">占比分布</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in categoryAnalysis)
+                        {
+                            double pct = catGrandTotal > 0 ? (double)item.Total / catGrandTotal * 100 : 0;
+                            double lostPct = catGrandTotal > 0 ? (double)item.LostCount / catGrandTotal * 100 : 0;
+                            double foundPct = catGrandTotal > 0 ? (double)item.FoundCount / catGrandTotal * 100 : 0;
+                            <tr>
+                                <td><span class="fw-bold">@item.Category</span></td>
+                                <td class="text-center text-danger fw-bold">@item.LostCount</td>
+                                <td class="text-center text-success fw-bold">@item.FoundCount</td>
+                                <td class="text-center fw-bold">@item.Total</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height:22px">
+                                            @if (item.LostCount > 0)
+                                            {
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width:@lostPct.ToString("F1")%" title="失物 @item.LostCount 条（@lostPct.ToString("F1")%）">
+                                                    @if (lostPct >= 10) { <span>📋 @item.LostCount</span> }
+                                                </div>
+                                            }
+                                            @if (item.FoundCount > 0)
+                                            {
+                                                <div class="progress-bar bg-success" role="progressbar" style="width:@foundPct.ToString("F1")%" title="招领 @item.FoundCount 条（@foundPct.ToString("F1")%）">
+                                                    @if (foundPct >= 10) { <span>🎁 @item.FoundCount</span> }
+                                                </div>
+                                            }
+                                        </div>
+                                        <span class="text-muted small" style="min-width:45px;text-align:right">@pct.ToString("F1")%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr class="fw-bold">
+                                <td>合计</td>
+                                <td class="text-center text-danger">@categoryAnalysis.Sum(x => (int)x.LostCount)</td>
+                                <td class="text-center text-success">@categoryAnalysis.Sum(x => (int)x.FoundCount)</td>
+                                <td class="text-center">@catGrandTotal</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted text-center py-5">暂无类别统计数据</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const colors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(pieColors));
+
+// ====== 饼状图 - 失物类别 ======
+@if (lostPie.Any()) {
+<text>
+new Chart(document.getElementById('pieLost'), {
+    type: 'pie',
+    data: {
+        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(lostPie.Select(x=>x.k))),
+        datasets: [{
+            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(lostPie.Select(x=>x.v))),
+            backgroundColor: colors.slice(0, @lostPie.Count),
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
+                var data = chart.data;
+                return data.labels.map((l,i)=>({text: l+' ('+data.datasets[0].data[i]+')', fillStyle: data.datasets[0].backgroundColor[i], index: i, strokeStyle: '#fff', lineWidth: 1}));
+            }}},
+            tooltip: { callbacks: { label: function(ctx) { var total = ctx.dataset.data.reduce((a,b)=>a+b,0); return ctx.label + ': ' + ctx.raw + ' 条 (' + (ctx.parsed/total*100).toFixed(1) + '%)'; } } }
+        }
+    }
+});
+</text>
+}
+
+// ====== 饼状图 - 招领类别 ======
+@if (foundPie.Any()) {
+<text>
+new Chart(document.getElementById('pieFound'), {
+    type: 'pie',
+    data: {
+        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(foundPie.Select(x=>x.k))),
+        datasets: [{
+            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(foundPie.Select(x=>x.v))),
+            backgroundColor: colors.slice(0, @foundPie.Count),
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
+                var data = chart.data;
+                return data.labels.map((l,i)=>({text: l+' ('+data.datasets[0].data[i]+')', fillStyle: data.datasets[0].backgroundColor[i], index: i, strokeStyle: '#fff', lineWidth: 1}));
+            }}},
+            tooltip: { callbacks: { label: function(ctx) { var total = ctx.dataset.data.reduce((a,b)=>a+b,0); return ctx.label + ': ' + ctx.raw + ' 条 (' + (ctx.parsed/total*100).toFixed(1) + '%)'; } } }
+        }
+    }
+});
+</text>
+}
+
+// ====== 折线图 - 月度趋势 ======
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthlyLabels)),
+        datasets: [
+            { label: '失物', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthlyLost)), borderColor: '#FF6384', backgroundColor: 'rgba(255,99,132,0.1)', tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#FF6384' },
+            { label: '招领', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthlyFound)), borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.1)', tension: 0.4, fill: true, pointRadius: 5, pointBackgroundColor: '#36A2EB' }
+        ]
+    },
+    options: {
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
+    }
+});
+
+// ====== 柱状图 - 地点TOP10 ======
+@if (locData.Any()) {
+<text>
+new Chart(document.getElementById('barLocation'), {
+    type: 'bar',
+    data: {
+        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(locLabels)),
+        datasets: [{ label: '物品数', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(locData)), backgroundColor: colors, borderRadius: 4 }]
+    },
+    options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
+    }
+});
+</text>
+}
+
+// ====== 柱状图 - 成功归还对比 ======
+@if (lostClaimedData.Sum() > 0 || foundClaimedData.Sum() > 0) {
+<text>
+new Chart(document.getElementById('barClaimed'), {
+    type: 'bar',
+    data: {
+        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(categories)),
+        datasets: [
+            { label: '✅ 失物已认领', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(lostClaimedData)), backgroundColor: '#4BC0C0', borderRadius: 4 },
+            { label: '✅ 招领已认领', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(foundClaimedData)), backgroundColor: '#9966FF', borderRadius: 4 }
+        ]
+    },
+    options: {
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+        }
+    }
+});
+</text>
+}
+</script>
+}

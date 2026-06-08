@@ -1,0 +1,8 @@
+@model List<LostAndFound.Models.Announcement>
+@{ ViewData["Title"] = "公告管理"; }
+<h3>📢 公告管理</h3>
+<a asp-action="CreateAnnouncement" class="btn btn-primary mb-3">发布新公告</a>
+@if(!Model.Any()){<div class="alert alert-info">暂无公告</div>}
+else{<div class="table-responsive"><table class="table table-hover"><thead class="table-dark"><tr><th>标题</th><th>内容</th><th>发布者</th><th>时间</th><th>置顶</th><th>操作</th></tr></thead>
+<tbody>@foreach(var a in Model){<tr><td>@a.Title</td><td>@(a.Content.Length>50?a.Content[..50]+"...":a.Content)</td><td>@a.Publisher?.RealName</td><td>@a.PublishedAt.ToString("MM-dd HH:mm")</td><td>@(a.IsTop?"⭐":"-")</td>
+<td><form asp-action="DeleteAnnouncement" asp-route-id="@a.Id" method="post" class="d-inline" onsubmit="return confirm('确认删除？')"><button class="btn btn-sm btn-outline-danger">删除</button></form></td></tr>}</tbody></table></div>}
