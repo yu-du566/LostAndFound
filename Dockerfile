@@ -11,7 +11,6 @@ WORKDIR /app
 COPY --from=build /app/publish .
 RUN mkdir -p /app/data
 ENV ConnectionStrings__DefaultConnection="Data Source=/app/data/LostAndFound.db"
-ENV ASPNETCORE_URLS="http://0.0.0.0:8080"
 EXPOSE 8080
 VOLUME ["/app/data"]
-ENTRYPOINT ["dotnet", "LostAndFound.dll"]
+ENTRYPOINT ["sh", "-c", "dotnet LostAndFound.dll --urls=http://0.0.0.0:${PORT:-8080}"]
