@@ -200,14 +200,15 @@
             <div class="card-body p-0">
                 @if (categoryAnalysis.Any())
                 {
+                    <div class="table-responsive">
                     <table class="table table-striped table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width:15%">类别</th>
-                                <th style="width:12%" class="text-center">📋 失物</th>
-                                <th style="width:12%" class="text-center">🎁 招领</th>
-                                <th style="width:12%" class="text-center">合计</th>
-                                <th style="width:49%">占比分布</th>
+                                <th>类别</th>
+                                <th class="text-center">📋</th>
+                                <th class="text-center">🎁</th>
+                                <th class="text-center hide-mobile">合计</th>
+                                <th class="hide-mobile">占比分布</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -220,8 +221,8 @@
                                 <td><span class="fw-bold">@item.Category</span></td>
                                 <td class="text-center text-danger fw-bold">@item.LostCount</td>
                                 <td class="text-center text-success fw-bold">@item.FoundCount</td>
-                                <td class="text-center fw-bold">@item.Total</td>
-                                <td>
+                                <td class="text-center fw-bold hide-mobile">@item.Total</td>
+                                <td class="hide-mobile">
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="progress flex-grow-1" style="height:22px">
                                             @if (item.LostCount > 0)
@@ -248,11 +249,12 @@
                                 <td>合计</td>
                                 <td class="text-center text-danger">@categoryAnalysis.Sum(x => (int)x.LostCount)</td>
                                 <td class="text-center text-success">@categoryAnalysis.Sum(x => (int)x.FoundCount)</td>
-                                <td class="text-center">@catGrandTotal</td>
-                                <td></td>
+                                <td class="text-center hide-mobile">@catGrandTotal</td>
+                                <td class="hide-mobile"></td>
                             </tr>
                         </tfoot>
                     </table>
+                    </div>
                 }
                 else
                 {
@@ -284,7 +286,7 @@ new Chart(document.getElementById('pieLost'), {
     },
     options: {
         plugins: {
-            legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
                 var data = chart.data;
                 return data.labels.map((l,i)=>({text: l+' ('+data.datasets[0].data[i]+')', fillStyle: data.datasets[0].backgroundColor[i], index: i, strokeStyle: '#fff', lineWidth: 1}));
             }}},
@@ -311,7 +313,7 @@ new Chart(document.getElementById('pieFound'), {
     },
     options: {
         plugins: {
-            legend: { position: 'right', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: { size: 11 }, generateLabels: function(chart) {
                 var data = chart.data;
                 return data.labels.map((l,i)=>({text: l+' ('+data.datasets[0].data[i]+')', fillStyle: data.datasets[0].backgroundColor[i], index: i, strokeStyle: '#fff', lineWidth: 1}));
             }}},

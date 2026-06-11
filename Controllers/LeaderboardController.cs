@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Models;
 using LostAndFound.Services;
 
@@ -13,11 +15,15 @@ namespace LostAndFound.Controllers
     {
         private readonly AppDbContext _db;
         private readonly AuthService _auth;
+        private readonly EmailService _email;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public LeaderboardController(AppDbContext db, AuthService auth)
+        public LeaderboardController(AppDbContext db, AuthService auth, EmailService email, IHubContext<NotificationHub> hub)
         {
             _db = db;
             _auth = auth;
+            _email = email;
+            _hub = hub;
         }
 
         // GET: /Leaderboard — 招领发布排行榜（所有人可见）
@@ -113,6 +119,14 @@ namespace LostAndFound.Controllers
                     Content = $"用户 {user.Username} 被自动拉黑30天（警告达3次）",
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
                 });
+
+                // 发送拉黑邮件
+                _ = _email.SendAsync(user.Email ?? "", "⚠️ 账号已被限制",
+                    $"<h3>⚠️ 账号使用受限</h3><p>您的账号因累计被警告 {user.WarningCount} 次，已被暂时限制使用。</p><p><b>解禁时间：</b>{user.BlacklistUntil:yyyy-MM-dd HH:mm}</p><p>如有疑问请联系管理员。</p>");
+
+                // SignalR 通知
+                _ = NotificationHub.SendToUser(_hub, userId, "blacklisted",
+                    "⚠️ 账号已被限制", $"您的账号因异常行为已被限制，解禁时间：{user.BlacklistUntil:yyyy-MM-dd HH:mm}");
             }
             else
             {
@@ -123,6 +137,14 @@ namespace LostAndFound.Controllers
                     Content = $"警告 {user.Username}：{reason}（第{user.WarningCount}次警告）",
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
                 });
+
+                // 发送警告邮件
+                _ = _email.SendAsync(user.Email ?? "", "⚠️ 系统警告通知",
+                    $"<h3>⚠️ 警告通知</h3><p>您的账号收到了一次系统警告（第 {user.WarningCount}/3 次）。</p><p><b>原因：</b>{reason}</p><p>累计 3 次警告将被自动限制使用 30 天，请注意遵守规则。</p>");
+
+                // SignalR 通知
+                _ = NotificationHub.SendToUser(_hub, userId, "warning",
+                    "⚠️ 系统警告", $"您收到了一次警告（{user.WarningCount}/3）：{reason}");
             }
 
             await _db.SaveChangesAsync();
@@ -205,6 +227,14 @@ namespace LostAndFound.Controllers
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
                 });
                 await _db.SaveChangesAsync();
+
+                // 发送解封邮件
+                _ = _email.SendAsync(user.Email ?? "", "✅ 账号已恢复正常",
+                    $"<h3>✅ 账号已恢复</h3><p>您的账号黑名单已被管理员手动解除，现在可以正常登录使用了。</p>");
+
+                // SignalR 通知
+                _ = NotificationHub.SendToUser(_hub, userId, "unbanned",
+                    "✅ 账号已恢复", "您的账号黑名单已被管理员解除，现在可以正常登录。");
             }
 
             TempData["SuccessMsg"] = "已解除黑名单";

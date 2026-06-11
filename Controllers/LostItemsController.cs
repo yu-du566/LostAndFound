@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Models;
 using LostAndFound.Services;
 
@@ -11,12 +13,19 @@ namespace LostAndFound.Controllers
         private readonly AppDbContext _db;
         private readonly AuthService _auth;
         private readonly SimilarityService _sim;
+        private readonly ImageRecognitionService _aiImage;
+        private readonly AiMatchingService _aiMatch;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public LostItemsController(AppDbContext db, AuthService auth, SimilarityService sim)
+        public LostItemsController(AppDbContext db, AuthService auth, SimilarityService sim,
+            ImageRecognitionService aiImage, AiMatchingService aiMatch, IHubContext<NotificationHub> hub)
         {
             _db = db;
             _auth = auth;
             _sim = sim;
+            _aiImage = aiImage;
+            _aiMatch = aiMatch;
+            _hub = hub;
         }
 
         // 确保登录
@@ -92,19 +101,35 @@ namespace LostAndFound.Controllers
                 return View(item);
             }
 
-            // 处理图片上传
-            if (imageFile != null && imageFile.Length > 0)
-            {
-                item.ImagePath = await Services.ImageService.SaveImageAsync(
-                    imageFile, Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
-            }
-
             item.UserId = _auth.GetCurrentUserId()!.Value;
             item.Status = "未认领";
             item.CreatedAt = DateTime.Now;
 
+            // 处理图片上传（重复检测之后，避免孤儿文件）
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                item.ImagePath = await Services.ImageService.SaveImageAsync(
+                    imageFile, Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+
+                // AI 图片识别 — 上传后自动分类
+                if (item.ImagePath != null)
+                {
+                    var aiCategory = await _aiImage.RecognizeCategoryAsync(
+                        item.ImagePath, Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+                    if (aiCategory != null)
+                    {
+                        item.Category = aiCategory;
+                        ViewBag.AiSuggestedCategory = aiCategory;
+                    }
+                }
+            }
+
             _db.LostItems.Add(item);
             await _db.SaveChangesAsync();
+
+            // SignalR 广播新失物发布通知
+            _ = NotificationHub.SendToAll(_hub, "new_lost",
+                "📌 新的失物信息", $"有人丢失了 {item.ItemName}（{item.Category}），地点：{item.LostLocation}");
 
             // 记录日志
             _db.SystemLogs.Add(new SystemLog
@@ -115,17 +140,17 @@ namespace LostAndFound.Controllers
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
             });
 
-            // 智能匹配
-            var matches = await _sim.CrossMatchAsync(item.ItemName, item.Category, item.Description, item.LostLocation, true);
-            if (matches.Any(m => m.Similarity >= 0.5))
+            // AI 智能匹配 — 自动匹配已有招领信息
+            await _db.SaveChangesAsync();
+
+            var aiMatches = await _aiMatch.MatchLostToFoundAsync(item.Id);
+            if (aiMatches.Any(m => m.MatchScore >= 40))
             {
-                TempData["MatchMsg"] = $"发现 {matches.Count} 条可能匹配的招领信息，请查看详情";
-                HttpContext.Session.SetString("LastMatchType", "Lost");
-                HttpContext.Session.SetInt32("LastItemId", item.Id);
+                TempData["MatchMsg"] = $"🤖 AI 发现 {aiMatches.Count} 条可能匹配的招领信息！";
+                return RedirectToAction(nameof(Matches), new { id = item.Id });
             }
 
-            await _db.SaveChangesAsync();
-            TempData["SuccessMsg"] = "失物信息发布成功";
+            TempData["SuccessMsg"] = "失物信息发布成功，暂未发现匹配的招领信息";
             return RedirectToAction(nameof(Index));
         }
 
@@ -175,7 +200,7 @@ namespace LostAndFound.Controllers
         // POST: /LostItems/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, LostItem model)
+        public async Task<IActionResult> Edit(int id, LostItem model, IFormFile? imageFile)
         {
             var loginCheck = EnsureLogin();
             if (loginCheck != null) return loginCheck;
@@ -194,6 +219,13 @@ namespace LostAndFound.Controllers
             item.LostTime = model.LostTime;
             item.LostLocation = model.LostLocation;
             item.Description = model.Description;
+
+            // 处理图片上传
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                item.ImagePath = await Services.ImageService.SaveImageAsync(
+                    imageFile, Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"));
+            }
 
             await _db.SaveChangesAsync();
 
@@ -238,16 +270,20 @@ namespace LostAndFound.Controllers
             return RedirectToAction(nameof(MyLostItems));
         }
 
-        // GET: /LostItems/Matches/5 - 查看匹配结果
+        // GET: /LostItems/Matches/5 - 查看 AI 匹配结果
         [HttpGet]
         public async Task<IActionResult> Matches(int id)
         {
-            var item = await _db.LostItems.FindAsync(id);
+            var item = await _db.LostItems
+                .Include(i => i.Publisher)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (item == null) return NotFound();
 
-            var matches = await _sim.CrossMatchAsync(item.ItemName, item.Category, item.Description, item.LostLocation, true);
+            // AI 语义匹配
+            var aiMatches = await _aiMatch.MatchLostToFoundAsync(id);
             ViewBag.Item = item;
-            return View(matches);
+            ViewBag.MatchMsg = TempData["MatchMsg"];
+            return View(aiMatches);
         }
     }
 }

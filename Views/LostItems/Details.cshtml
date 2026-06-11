@@ -3,22 +3,28 @@
 <div class="card shadow">
     <div class="card-header bg-primary text-white"><h4 class="mb-0">失物详情</h4></div>
     <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.ImagePath))
+        {
+            <div class="text-center mb-3">
+                <img src="@Model.ImagePath" alt="@Model.ItemName" class="img-fluid rounded shadow-sm" style="max-height:300px;" />
+            </div>
+        }
         <dl class="row">
-            <dt class="col-sm-3">物品名称</dt><dd class="col-sm-9">@Model.ItemName</dd>
-            <dt class="col-sm-3">物品类别</dt><dd class="col-sm-9">@Model.Category</dd>
-            <dt class="col-sm-3">丢失时间</dt><dd class="col-sm-9">@Model.LostTime.ToString("yyyy-MM-dd HH:mm")</dd>
-            <dt class="col-sm-3">丢失地点</dt><dd class="col-sm-9">@Model.LostLocation</dd>
-            <dt class="col-sm-3">特征描述</dt><dd class="col-sm-9">@(Model.Description ?? "无")</dd>
-            <dt class="col-sm-3">状态</dt><dd class="col-sm-9"><span class="badge @(Model.Status=="未认领"?"bg-danger":Model.Status=="认领中"?"bg-warning":"bg-success")">@Model.Status</span></dd>
-            <dt class="col-sm-3">发布者</dt><dd class="col-sm-9">@Model.Publisher?.RealName</dd>
-            <dt class="col-sm-3">发布时间</dt><dd class="col-sm-9">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+            <dt class="col-4 col-sm-3">物品名称</dt><dd class="col-8 col-sm-9">@Model.ItemName</dd>
+            <dt class="col-4 col-sm-3">物品类别</dt><dd class="col-8 col-sm-9">@Model.Category</dd>
+            <dt class="col-4 col-sm-3">丢失时间</dt><dd class="col-8 col-sm-9">@Model.LostTime.ToString("yyyy-MM-dd HH:mm")</dd>
+            <dt class="col-4 col-sm-3">丢失地点</dt><dd class="col-8 col-sm-9">@Model.LostLocation</dd>
+            <dt class="col-4 col-sm-3">特征描述</dt><dd class="col-8 col-sm-9">@(Model.Description ?? "无")</dd>
+            <dt class="col-4 col-sm-3">状态</dt><dd class="col-8 col-sm-9"><span class="badge @(Model.Status=="未认领"?"bg-danger":Model.Status=="认领中"?"bg-warning":"bg-success")">@Model.Status</span></dd>
+            <dt class="col-4 col-sm-3">发布者</dt><dd class="col-8 col-sm-9">@Model.Publisher?.RealName</dd>
+            <dt class="col-4 col-sm-3">发布时间</dt><dd class="col-8 col-sm-9">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
         </dl>
         @if (Model.Status == "未认领")
         { <a asp-controller="Claims" asp-action="Apply" asp-route-type="Lost" asp-route-id="@Model.Id" class="btn btn-warning">申请认领</a> }
         <a asp-action="Index" class="btn btn-secondary">返回列表</a>
         @if (Model.Claims.Any())
         { <h5 class="mt-3">认领记录</h5>
-          <table class="table table-sm"><thead><tr><th>申请人</th><th>申请时间</th><th>状态</th></tr></thead>
-          <tbody>@foreach (var c in Model.Claims) { <tr><td>@c.Applicant?.RealName</td><td>@c.AppliedAt.ToString("MM-dd HH:mm")</td><td>@c.Status</td></tr> }</tbody></table> }
+          <div class="table-responsive"><table class="table table-sm"><thead><tr><th>申请人</th><th>申请时间</th><th>状态</th></tr></thead>
+          <tbody>@foreach (var c in Model.Claims) { <tr><td>@c.Applicant?.RealName</td><td>@c.AppliedAt.ToString("MM-dd HH:mm")</td><td>@c.Status</td></tr> }</tbody></table></div> }
     </div>
 </div>

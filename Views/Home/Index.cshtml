@@ -4,12 +4,43 @@
     int totalFound = ViewBag.TotalFound ?? 0;
     int totalClaimed = ViewBag.TotalClaimed ?? 0;
     var announcements = ViewBag.Announcements as List<LostAndFound.Models.Announcement> ?? new();
+    var notifications = ViewBag.Notifications as List<LostAndFound.Models.Notification> ?? new();
+    int unreadCount = ViewBag.UnreadCount ?? 0;
 }
 
-<div class="text-center mb-5">
-    <h1 class="display-4 fw-bold text-primary">📦 失物招领智能平台</h1>
-    <p class="lead text-muted">集中发布 · 智能匹配 · 安全认领 · 全流程管理</p>
+<div class="text-center mb-4">
+    <h1 class="display-4 fw-bold text-primary d-none d-sm-block">📦 失物招领智能平台</h1>
+    <h3 class="fw-bold text-primary d-sm-none">📦 失物招领智能平台</h3>
+    <p class="lead text-muted d-none d-sm-block">集中发布 · 智能匹配 · 安全认领 · 全流程管理</p>
 </div>
+
+@if (notifications.Any())
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <h5 class="alert-heading">🔔 您有 @unreadCount 条新消息</h5>
+        <hr>
+        @foreach (var n in notifications)
+        {
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div style="white-space:pre-line;">
+                    <span class="me-2">📌</span>@n.Message
+                </div>
+                <div class="text-end ms-3" style="min-width:120px;">
+                    @if (!string.IsNullOrEmpty(n.RelatedUrl))
+                    {
+                        <a href="@n.RelatedUrl" class="btn btn-sm btn-success">查看详情 →</a>
+                    }
+                    <br>
+                    <small class="text-muted">@n.CreatedAt.ToString("MM-dd HH:mm")</small>
+                </div>
+            </div>
+            @if (n != notifications.Last())
+            {
+                <hr class="my-1">
+            }
+        }
+    </div>
+}
 
 <div class="row mb-4">
     <div class="col-md-4">
@@ -68,28 +99,61 @@
 }
 
 <div class="row mt-4 mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-body text-center py-3">
-                <div class="row align-items-center">
-                    <div class="col-md-3 col-4 mx-auto">
-                        <img src="/Home/QrCode" alt="手机扫码打开" class="img-fluid" style="max-width:160px;" />
-                    </div>
-                    <div class="col-md-9 col-8 text-start">
-                        <h5 class="mb-1">📱 手机端访问</h5>
-                        <p class="text-muted mb-1 small">
-                            用手机相机扫描二维码，即可在手机上打开本平台。<br>
-                            支持添加到主屏幕，像 App 一样使用。
-                        </p>
-                        <p class="text-info mb-0 small">
-                            💡 手机连不上？电脑开启热点：<strong>LostAndFound / 12345678</strong><br>
-                            手机连接此WiFi后，浏览器打开 <code>http://192.168.137.1:5000</code>
-                        </p>
+    @{
+        var lanUrl = ViewBag.LanUrl as string ?? "";
+        var extUrl = ViewBag.ExternalUrl as string ?? "";
+    }
+    @if (!string.IsNullOrEmpty(extUrl))
+    {
+        <!-- 双二维码：局域网 + 远程 -->
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success bg-opacity-25 fw-bold">🏠 同一WiFi扫码</div>
+                <div class="card-body text-center py-2">
+                    <img src="/Home/QrCode?url=@System.Net.WebUtility.UrlEncode(lanUrl)" alt="局域网扫码" class="img-fluid" style="max-width:150px;" />
+                    <p class="text-muted small mb-0 mt-1">手机连同一WiFi时使用</p>
+                    <code class="small">@lanUrl</code>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary bg-opacity-25 fw-bold">🌐 远程访问扫码</div>
+                <div class="card-body text-center py-2">
+                    <img src="/Home/QrCode?url=@System.Net.WebUtility.UrlEncode(extUrl)" alt="远程扫码" class="img-fluid" style="max-width:150px;" />
+                    <p class="text-muted small mb-0 mt-1">任何网络都能访问</p>
+                    <code class="small">@extUrl</code>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- 单二维码：仅局域网 -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 col-4 mx-auto">
+                            <img src="/Home/QrCode" alt="手机扫码打开" class="img-fluid" style="max-width:160px;" />
+                        </div>
+                        <div class="col-md-9 col-8 text-start">
+                            <h5 class="mb-1">📱 手机端访问</h5>
+                            <p class="text-muted mb-1 small">
+                                手机扫描二维码打开平台。<br>支持添加到主屏幕，像 App 一样使用。
+                            </p>
+                            <p class="mb-0 small">
+                                <strong>局域网地址：</strong><code>@lanUrl</code>
+                            </p>
+                            <p class="text-info mb-0 small mt-1">
+                                💡 不同网络？配置 ngrok 后此处会显示远程二维码
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 <div class="row g-3">

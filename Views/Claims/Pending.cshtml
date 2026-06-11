@@ -2,6 +2,6 @@
 @{ ViewData["Title"] = "待审核认领"; }
 <h3>⏳ 待审核认领申请</h3>
 @if(!Model.Any()){<div class="alert alert-info">暂无待审核申请</div>}
-else{<div class="table-responsive"><table class="table table-hover"><thead class="table-dark"><tr><th>物品</th><th>类型</th><th>申请人</th><th>申请理由</th><th>时间</th><th>操作</th></tr></thead>
-<tbody>@foreach(var c in Model){<tr><td>@(c.LostItem?.ItemName ?? c.FoundItem?.ItemName)</td><td>@(c.LostItemId!=null?"失物":"招领")</td><td>@c.Applicant?.RealName</td><td>@c.Reason</td><td>@c.AppliedAt.ToString("MM-dd HH:mm")</td>
+else{<div class="table-responsive"><table class="table table-hover"><thead class="table-dark"><tr><th>物品</th><th class="hide-mobile">类型</th><th>申请人</th><th class="hide-mobile">申请理由</th><th>时间</th><th>操作</th></tr></thead>
+<tbody>@foreach(var c in Model){<tr><td>@(c.LostItem?.ItemName ?? c.FoundItem?.ItemName)</td><td class="hide-mobile">@(c.LostItemId!=null?"失物":"招领")</td><td>@c.Applicant?.RealName</td><td class="hide-mobile">@c.Reason</td><td>@c.AppliedAt.ToString("MM-dd HH:mm")</td>
 <td><a asp-action="Review" asp-route-id="@c.Id" class="btn btn-sm btn-primary">审核</a></td></tr>}</tbody></table></div>}

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Models;
 using LostAndFound.Services;
 
@@ -10,11 +12,15 @@ namespace LostAndFound.Controllers
     {
         private readonly AppDbContext _db;
         private readonly AuthService _auth;
+        private readonly EmailService _email;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public AdminController(AppDbContext db, AuthService auth)
+        public AdminController(AppDbContext db, AuthService auth, EmailService email, IHubContext<NotificationHub> hub)
         {
             _db = db;
             _auth = auth;
+            _email = email;
+            _hub = hub;
         }
 
         private IActionResult? EnsureAdmin()
@@ -203,6 +209,19 @@ namespace LostAndFound.Controllers
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
             });
             await _db.SaveChangesAsync();
+
+            // SignalR 广播新公告通知
+            _ = NotificationHub.SendToAll(_hub, "new_announcement",
+                "📢 新公告", title);
+
+            // 群发邮件给所有填写了邮箱的用户
+            var recipients = await _db.Users
+                .Where(u => u.Email != null && u.Email != "")
+                .Select(u => new { u.Email, u.RealName })
+                .ToListAsync();
+            var emailList = recipients.Select(r => (r.Email!, r.RealName)).ToList();
+            _ = _email.SendToAllAsync(emailList, $"📢 校园失物招领公告: {title}",
+                $"<h3>{title}</h3><p>{content}</p><p style='color:#999;'>发布时间：{DateTime.Now:yyyy-MM-dd HH:mm}</p>");
 
             TempData["SuccessMsg"] = "公告发布成功";
             return RedirectToAction(nameof(Announcements));

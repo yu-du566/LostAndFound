@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Services;
 
 namespace LostAndFound
@@ -26,7 +27,17 @@ namespace LostAndFound
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<SimilarityService>();
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddScoped<EmailService>();
+            builder.Services.AddScoped<AiMatchingService>();
+
+            // ImageRecognitionService 需要 HttpClient 调用 OpenAI API
+            builder.Services.AddHttpClient<ImageRecognitionService>();
+
+            // SignalR 实时消息
+            builder.Services.AddSignalR();
+
+            builder.Services.AddControllersWithViews()
+                .AddRazorRuntimeCompilation();
 
             var app = builder.Build();
 
@@ -112,6 +123,13 @@ namespace LostAndFound
             if (!app.Environment.IsDevelopment())
                 app.UseExceptionHandler("/Home/Error");
 
+            // 跳过 ngrok 免费版的拦截警告页
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers["ngrok-skip-browser-warning"] = "1";
+                await next();
+            });
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseSession();
@@ -120,6 +138,8 @@ namespace LostAndFound
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<NotificationHub>("/notificationHub");
 
             app.Run();
         }

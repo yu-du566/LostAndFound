@@ -29,3 +29,110 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* ===== Mobile Responsive Overrides ===== */
+
+/* Hide columns on small screens */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  .navbar-brand {
+    font-size: 1rem !important;
+    max-width: 60vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  h3 {
+    font-size: 1.2rem !important;
+  }
+  h5 {
+    font-size: 1rem !important;
+  }
+  .display-4 {
+    font-size: 2rem !important;
+  }
+  .display-6 {
+    font-size: 1.5rem !important;
+  }
+  .fs-3 {
+    font-size: 1.2rem !important;
+  }
+  .fs-5 {
+    font-size: 0.9rem !important;
+  }
+  .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  /* Table cell padding reduction */
+  .table td, .table th {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.8rem;
+  }
+  /* Buttons in table cells stack vertically */
+  .table td .btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  .table td .btn + .btn {
+    margin-left: 0 !important;
+  }
+  .table td form.d-inline {
+    display: block !important;
+  }
+  .table td form.d-inline .btn {
+    width: 100%;
+  }
+  /* QR code card */
+  .qr-section .row {
+    flex-direction: column;
+    text-align: center;
+  }
+  .qr-section img {
+    max-width: 120px !important;
+    margin-bottom: 0.5rem;
+  }
+  .qr-section .text-start {
+    text-align: center !important;
+  }
+  /* Stats cards */
+  .stats-card .card-body {
+    padding: 0.3rem !important;
+  }
+  /* Pie chart legends */
+  canvas[id^="pie"] {
+    max-height: 200px;
+  }
+  /* Progress bar table */
+  .progress-cell {
+    min-width: 80px;
+  }
+  /* Container padding */
+  .container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* Medium screen adjustments */
+@media (min-width: 768px) and (max-width: 991px) {
+  .navbar-brand {
+    font-size: 1.1rem !important;
+  }
+  h3 {
+    font-size: 1.4rem !important;
+  }
+  .display-4 {
+    font-size: 2.5rem !important;
+  }
+}
+
+/* Show-on-mobile only */
+@media (min-width: 768px) {
+  .show-mobile {
+    display: none !important;
+  }
+}

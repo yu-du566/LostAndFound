@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Models;
 using LostAndFound.Services;
 
@@ -10,11 +12,15 @@ namespace LostAndFound.Controllers
     {
         private readonly AppDbContext _db;
         private readonly AuthService _auth;
+        private readonly EmailService _email;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public AccountController(AppDbContext db, AuthService auth)
+        public AccountController(AppDbContext db, AuthService auth, EmailService email, IHubContext<NotificationHub> hub)
         {
             _db = db;
             _auth = auth;
+            _email = email;
+            _hub = hub;
         }
 
         // GET: /Account/Login
@@ -90,6 +96,15 @@ namespace LostAndFound.Controllers
             }
 
             TempData["SuccessMsg"] = "注册成功，请登录";
+
+            // 发送欢迎邮件
+            _ = _email.SendAsync(email ?? "", "欢迎注册校园失物招领系统",
+                $"<h3>🎉 欢迎，{realName}！</h3><p>您已成功注册校园失物招领系统。</p><p>现在您可以发布失物/招领信息，帮助他人找回遗失物品。</p>");
+
+            // SignalR 广播新用户注册通知
+            _ = NotificationHub.SendToAll(_hub, "new_user",
+                "新用户注册", $"欢迎新用户 {realName} 加入校园失物招领系统！");
+
             return RedirectToAction("Login");
         }
 

@@ -1,0 +1,100 @@
+@using LostAndFound.Services
+@model List<AiMatchingService.LostMatchResult>
+@{
+    var item = ViewBag.Item as LostAndFound.Models.FoundItem;
+    ViewData["Title"] = "AI 匹配结果 - " + item?.ItemName;
+}
+
+<div class="container mt-4">
+    <div class="alert alert-info d-flex align-items-center">
+        <span class="fs-4 me-2">🤖</span>
+        <div>
+            <h5 class="mb-1">AI 智能匹配结果</h5>
+            <p class="mb-0">根据您发布的招领信息 <b>"@item?.ItemName"</b>，AI 在已有失物信息中找到了 @Model.Count 条可能匹配的记录。</p>
+            @if (ViewBag.MatchMsg != null)
+            {
+                <small class="text-success">@ViewBag.MatchMsg</small>
+            }
+        </div>
+    </div>
+
+    <h5 class="mb-3">📋 您发布的招领信息</h5>
+    <div class="card mb-4 bg-light">
+        <div class="card-body">
+            <span class="badge bg-success me-2">招领</span>
+            <strong>@item?.ItemName</strong>
+            <span class="text-muted ms-3">类别：@item?.Category</span>
+            <span class="text-muted ms-3">地点：@item?.FoundLocation</span>
+            <span class="text-muted ms-3">时间：@item?.FoundTime.ToString("yyyy-MM-dd")</span>
+            @if (!string.IsNullOrEmpty(item?.Description))
+            {
+                <br /><small class="text-muted">描述：@item?.Description</small>
+            }
+        </div>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-secondary">
+            <p class="mb-0">😔 暂未发现匹配的失物信息。您可以稍后再来查看，或者浏览全部失物信息。</p>
+            <a href="/LostItems" class="btn btn-outline-primary mt-2">浏览失物列表</a>
+        </div>
+    }
+    else
+    {
+        <h5 class="mb-3">🎯 匹配到的失物信息（按匹配度排序）</h5>
+        @foreach (var match in Model)
+        {
+            var li = match.LostItem;
+            if (li == null) continue;
+
+            var badgeClass = match.MatchScore switch
+            {
+                >= 80 => "bg-danger",
+                >= 60 => "bg-warning text-dark",
+                _ => "bg-secondary"
+            };
+
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-warning text-dark me-2">失物</span>
+                        <strong>@li.ItemName</strong>
+                        <small class="text-muted ms-2">@li.LostTime.ToString("yyyy-MM-dd")</small>
+                    </div>
+                    <span class="badge @badgeClass fs-6">匹配度 @match.MatchScore.ToString("F0")%</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p><strong>类别：</strong>@li.Category &nbsp;|&nbsp; <strong>地点：</strong>@li.LostLocation</p>
+                            @if (!string.IsNullOrEmpty(li.Description))
+                            {
+                                <p><strong>描述：</strong>@li.Description</p>
+                            }
+                            @if (!string.IsNullOrEmpty(match.Reason))
+                            {
+                                <p class="text-info mt-2">
+                                    <small>🤖 <strong>AI分析：</strong>@match.Reason</small>
+                                </p>
+                            }
+                        </div>
+                        <div class="col-md-4 text-end">
+                            @if (!string.IsNullOrEmpty(li.ImagePath))
+                            {
+                                <img src="@li.ImagePath" alt="@li.ItemName" style="max-height:80px;border-radius:4px;" class="mb-2" />
+                            }
+                            <br />
+                            <a href="/LostItems/Details/@li.Id" class="btn btn-sm btn-outline-info">查看详情</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="text-center mt-4">
+            <a href="/LostItems" class="btn btn-outline-secondary">浏览全部失物</a>
+            <a href="/FoundItems/MyFoundItems" class="btn btn-outline-primary ms-2">返回我的招领</a>
+        </div>
+    }
+</div>

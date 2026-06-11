@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
 using LostAndFound.Models;
+using LostAndFound.Services;
 using QRCoder;
 
 namespace LostAndFound.Controllers;
@@ -10,10 +11,14 @@ namespace LostAndFound.Controllers;
 public class HomeController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly AuthService _auth;
+    private readonly IConfiguration _config;
 
-    public HomeController(AppDbContext db)
+    public HomeController(AppDbContext db, AuthService auth, IConfiguration config)
     {
         _db = db;
+        _auth = auth;
+        _config = config;
     }
 
     public IActionResult Index()
@@ -26,26 +31,47 @@ public class HomeController : Controller
             .ThenByDescending(a => a.PublishedAt)
             .Take(5)
             .ToList();
+
+        // 当前用户的未读通知
+        var userId = _auth.GetCurrentUserId();
+        ViewBag.Notifications = userId != null
+            ? _db.Notifications.Where(n => n.UserId == userId && !n.IsRead)
+                .OrderByDescending(n => n.CreatedAt).Take(10).ToList()
+            : new List<Notification>();
+        ViewBag.UnreadCount = userId != null
+            ? _db.Notifications.Count(n => n.UserId == userId && !n.IsRead)
+            : 0;
+
+        // 局域网访问URL
+        var lanIp = GetLocalIP();
+        var port = Request.Host.Port ?? 5171;
+        ViewBag.LanUrl = lanIp != null ? $"http://{lanIp}:{port}" : $"http://localhost:{port}";
+
+        // ngrok 远程访问URL（从配置读取，空则不显示）
+        ViewBag.ExternalUrl = _config["ExternalUrl"] ?? "";
+
         return View();
     }
 
     /// <summary>
-    /// 生成二维码，自动检测本机IP，手机扫描后直接访问
+    /// 生成二维码。支持参数 url 指定地址，否则自动检测本机IP
     /// </summary>
     [HttpGet]
-    public IActionResult QrCode()
+    public IActionResult QrCode(string? url)
     {
-        var host = Request.Host.Host;
-        var port = Request.Host.Port ?? 5000;
-
-        // 如果从localhost访问，用真实IP替换，手机才能扫码访问
-        if (host.StartsWith("localhost") || host.StartsWith("127."))
+        if (string.IsNullOrWhiteSpace(url))
         {
-            var ip = GetLocalIP();
-            if (!string.IsNullOrEmpty(ip))
-                host = ip;
+            var host = Request.Host.Host;
+            var port = Request.Host.Port ?? 5171;
+
+            if (host.StartsWith("localhost") || host.StartsWith("127."))
+            {
+                var ip = GetLocalIP();
+                if (!string.IsNullOrEmpty(ip))
+                    host = ip;
+            }
+            url = $"{Request.Scheme}://{host}:{port}/";
         }
-        var url = $"{Request.Scheme}://{host}:{port}/";
 
         using var qrGenerator = new QRCodeGenerator();
         using var qrData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
@@ -86,6 +112,18 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+
+    // POST: /Home/MarkAllRead
+    [HttpPost]
+    public async Task<IActionResult> MarkAllRead()
+    {
+        var userId = _auth.GetCurrentUserId();
+        if (userId == null) return RedirectToAction("Login", "Account");
+        var unread = await _db.Notifications.Where(n => n.UserId == userId && !n.IsRead).ToListAsync();
+        foreach (var n in unread) n.IsRead = true;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

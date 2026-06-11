@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using LostAndFound.Data;
+using LostAndFound.Hubs;
 using LostAndFound.Models;
 using LostAndFound.Services;
 
@@ -10,11 +12,15 @@ namespace LostAndFound.Controllers
     {
         private readonly AppDbContext _db;
         private readonly AuthService _auth;
+        private readonly EmailService _email;
+        private readonly IHubContext<NotificationHub> _hub;
 
-        public ClaimsController(AppDbContext db, AuthService auth)
+        public ClaimsController(AppDbContext db, AuthService auth, EmailService email, IHubContext<NotificationHub> hub)
         {
             _db = db;
             _auth = auth;
+            _email = email;
+            _hub = hub;
         }
 
         private IActionResult? EnsureLogin()
@@ -219,6 +225,19 @@ namespace LostAndFound.Controllers
                 if (claim.LostItem != null) claim.LostItem.Status = "已认领";
                 if (claim.FoundItem != null) claim.FoundItem.Status = "已认领";
                 _db.SystemLogs.Add(new SystemLog { UserId = _auth.GetCurrentUserId(), ActionType = "审核通过", Content = $"认领申请 ID:{id} 审核通过", IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() });
+
+                // 发送邮件通知申请人
+                var applicant = await _db.Users.FindAsync(claim.ApplicantId);
+                if (applicant?.Email != null)
+                {
+                    var itemName = claim.LostItem?.ItemName ?? claim.FoundItem?.ItemName ?? "未知物品";
+                    _ = _email.SendAsync(applicant.Email, "认领申请已通过 ✅",
+                        $"<h3>📦 认领申请已通过</h3><p>您对 <b>{itemName}</b> 的认领申请已通过审核。</p><p>请联系管理员领取物品。</p>{(remark != null ? $"<p><b>审核备注：</b>{remark}</p>" : "")}");
+                }
+
+                // SignalR 通知申请人
+                _ = NotificationHub.SendToUser(_hub, claim.ApplicantId, "claim_approved",
+                    "认领申请已通过", $"您对 {(claim.LostItem?.ItemName ?? claim.FoundItem?.ItemName ?? "物品")} 的认领申请已通过审核！");
             }
             else if (action == "reject")
             {
@@ -227,6 +246,19 @@ namespace LostAndFound.Controllers
                 if (claim.LostItem != null) claim.LostItem.Status = "未认领";
                 if (claim.FoundItem != null) claim.FoundItem.Status = "未认领";
                 _db.SystemLogs.Add(new SystemLog { UserId = _auth.GetCurrentUserId(), ActionType = "审核拒绝", Content = $"认领申请 ID:{id} 被拒绝，原因: {remark}", IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() });
+
+                // 发送邮件通知申请人
+                var applicant = await _db.Users.FindAsync(claim.ApplicantId);
+                if (applicant?.Email != null)
+                {
+                    var itemName = claim.LostItem?.ItemName ?? claim.FoundItem?.ItemName ?? "未知物品";
+                    _ = _email.SendAsync(applicant.Email, "认领申请未通过",
+                        $"<h3>📦 认领申请未通过</h3><p>很遗憾，您对 <b>{itemName}</b> 的认领申请未通过审核。</p>{(remark != null ? $"<p><b>审核备注：</b>{remark}</p>" : "")}<p>如有疑问请联系管理员。</p>");
+                }
+
+                // SignalR 通知申请人
+                _ = NotificationHub.SendToUser(_hub, claim.ApplicantId, "claim_rejected",
+                    "认领申请未通过", $"您对 {(claim.LostItem?.ItemName ?? claim.FoundItem?.ItemName ?? "物品")} 的认领申请未通过审核。");
             }
             await _db.SaveChangesAsync();
             TempData["SuccessMsg"] = $"认领申请已{(action == "approve" ? "通过" : "拒绝")}";
